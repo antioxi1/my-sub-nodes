@@ -1,0 +1,32 @@
+name: Update proxy subscription
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 */6 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build subscription
+        env:
+          SUBSCRIPTION_URLS: ${{ secrets.SUBSCRIPTION_URLS }}
+          TCP_TIMEOUT_SECONDS: "3"
+          MAX_TCP_LATENCY_MS: "2500"
+          MAX_WORKERS: "40"
+          ENABLE_TCP_CHECK: "true"
+        run: python scripts/build_subscription.py
