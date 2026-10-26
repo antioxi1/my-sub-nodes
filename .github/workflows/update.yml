@@ -32,8 +32,7 @@ jobs:
           SUBSCRIPTION_URLS: ${{ secrets.SUBSCRIPTION_URLS }}
         run: |
           if [ -z "$SUBSCRIPTION_URLS" ]; then
-            echo "::error::Missing SUBSCRIPTION_URLS."
-            echo "Add it in Settings > Secrets and variables > Actions."
+            echo "::error::Missing SUBSCRIPTION_URLS secret"
             exit 1
           fi
           echo "Subscription source secret is configured."
