@@ -17,7 +17,14 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from urllib.parse import urlsplit
 
-SUPPORTED = ("ss://", "vmess://", "vless://", "trojan://", "socks://", "socks5://", "http://", "https://")
+SUPPORTED = (
+    "ss://",
+    "vmess://",
+    "vless://",
+    "trojan://",
+    "socks://",
+    "socks5://",
+)
 TIMEOUT = float(os.getenv("TCP_TIMEOUT_SECONDS", "3"))
 MAX_WORKERS = int(os.getenv("MAX_WORKERS", "40"))
 MAX_PER_SOURCE = int(os.getenv("MAX_PER_SOURCE", "3000"))
@@ -103,8 +110,8 @@ def main():
             text = fetch(url)
 
             pattern = re.compile(
-                r"""(?i)(?:ss|vmess|vless|trojan|socks5?|https?)://[^\s"'<>]+"""
-            )
+    r"""(?i)(?:ss|vmess|vless|trojan|socks5?)://[^\s"'<>]+"""
+)
 
             found = []
             for match in pattern.findall(text):
