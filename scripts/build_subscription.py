@@ -97,30 +97,38 @@ def main():
 
     all_uris = []
     errors = []
+
     for url in urls:
         try:
             text = fetch(url)
-            
-        # Extract supported proxy URIs even when surrounded
-        # by quotes, YAML markers, or other text.
-        pattern = re.compile(
-            r"""(?i)(?:ss|vmess|vless|trojan|socks5?|https?)://[^\s"'<>]+"""
-        )
 
-        found = []
-        for match in pattern.findall(text):
-            candidate = match.rstrip("),;]}")
-            if candidate and candidate.startswith(SUPPORTED):
-                found.append(candidate)
+            pattern = re.compile(
+                r"""(?i)(?:ss|vmess|vless|trojan|socks5?|https?)://[^\s"'<>]+"""
+            )
 
-        # Preserve order while removing duplicates.
-        found = list(dict.fromkeys(found))
+            found = []
+            for match in pattern.findall(text):
+                candidate = match.rstrip("),;]}")
+                if candidate.startswith(SUPPORTED):
+                    found.append(candidate)
 
+            found = list(dict.fromkeys(found))
             all_uris.extend(found[:MAX_PER_SOURCE])
-            print(f"Fetched source: {len(found[:MAX_PER_SOURCE])} candidate links")
-        except Exception as exc:
-            errors.append(f"{url}: {type(exc).__name__}: {exc}")
-            print(f"WARNING: source fetch failed ({type(exc).__name__})")
+
+            print(
+                f"Fetched source: "
+                f"{len(found[:MAX_PER_SOURCE])} candidate links"
+            )
+
+          except Exception as exc:
+            errors.append(
+                f"{type(exc).__name__}: {exc}"
+            )
+            print(
+                f"WARNING: source fetch failed "
+                f"({type(exc).__name__})"
+            )
+
 
     # Preserve order while removing duplicates.
     unique = list(dict.fromkeys(all_uris))
