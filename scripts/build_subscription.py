@@ -100,14 +100,22 @@ def main():
     for url in urls:
         try:
             text = fetch(url)
-            found = []
-            for line in text.splitlines():
-                candidate = line.strip().strip("\ufeff")
-                if candidate.startswith(SUPPORTED):
-                    found.append(candidate)
-            # Some feeds return a single URI on one line.
-            if not found and text.startswith(SUPPORTED):
-                found = [text]
+            
+        # Extract supported proxy URIs even when surrounded
+        # by quotes, YAML markers, or other text.
+        pattern = re.compile(
+            r"""(?i)(?:ss|vmess|vless|trojan|socks5?|https?)://[^\s"'<>]+"""
+        )
+
+        found = []
+        for match in pattern.findall(text):
+            candidate = match.rstrip("),;]}")
+            if candidate and candidate.startswith(SUPPORTED):
+                found.append(candidate)
+
+        # Preserve order while removing duplicates.
+        found = list(dict.fromkeys(found))
+
             all_uris.extend(found[:MAX_PER_SOURCE])
             print(f"Fetched source: {len(found[:MAX_PER_SOURCE])} candidate links")
         except Exception as exc:
