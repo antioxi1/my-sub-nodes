@@ -13,12 +13,14 @@ import socket
 import time
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from pathlib import Path
 from urllib.parse import urlsplit
 
 SUPPORTED = ("ss://", "vmess://", "vless://", "trojan://", "socks://", "socks5://", "http://", "https://")
 TIMEOUT = float(os.getenv("TCP_TIMEOUT_SECONDS", "3"))
 MAX_WORKERS = int(os.getenv("MAX_WORKERS", "40"))
 MAX_PER_SOURCE = int(os.getenv("MAX_PER_SOURCE", "3000"))
+
 
 def fetch(url: str) -> str:
     req = urllib.request.Request(url, headers={"User-Agent": "my-sub-nodes/1.0"})
@@ -35,6 +37,7 @@ def fetch(url: str) -> str:
         except Exception:
             pass
     return text
+
 
 def get_host_port(uri: str):
     """Best-effort endpoint extraction for common URI schemes."""
@@ -53,6 +56,7 @@ def get_host_port(uri: str):
         return None
     return None
 
+
 def tcp_latency(uri: str):
     endpoint = get_host_port(uri)
     if not endpoint:
@@ -66,6 +70,7 @@ def tcp_latency(uri: str):
             return round((time.monotonic() - started) * 1000)
     except (OSError, ValueError):
         return None
+
 
 def main():
     source_text = os.getenv("SUBSCRIPTION_URLS", "").strip()
@@ -129,6 +134,7 @@ def main():
     print(f"Output links: {len(filtered)}")
     if errors:
         print(f"Sources with errors: {len(errors)}")
+
 
 if __name__ == "__main__":
     main()
