@@ -120,7 +120,7 @@ def main():
                 f"{len(found[:MAX_PER_SOURCE])} candidate links"
             )
 
-          except Exception as exc:
+        except Exception as exc:
             errors.append(
                 f"{type(exc).__name__}: {exc}"
             )
