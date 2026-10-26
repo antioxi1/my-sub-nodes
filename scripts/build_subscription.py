@@ -7,6 +7,7 @@ Output: dist/subscription.txt (Base64 encoded URI list) and dist/nodes.txt (plai
 from __future__ import annotations
 
 import base64
+import json
 import os
 import re
 import socket
@@ -22,16 +23,34 @@ MAX_WORKERS = int(os.getenv("MAX_WORKERS", "40"))
 MAX_PER_SOURCE = int(os.getenv("MAX_PER_SOURCE", "3000"))
 
 
+def safe_base64_decode(raw: str) -> bytes:
+    """Robust Base64 decoder supporting both standard and URL-safe variants."""
+    compact = re.sub(r"\s+", "", raw)
+    padding = "=" * (-len(compact) % 4)
+    # Try standard base64 first, then urlsafe
+    for b64_str in (compact + padding, compact):
+        try:
+            return base64.b64decode(b64_str)
+        except Exception:
+            try:
+                return base64.urlsafe_b64decode(b64_str)
+            except Exception:
+                continue
+    raise ValueError("Invalid base64 string")
+
+
 def fetch(url: str) -> str:
     req = urllib.request.Request(url, headers={"User-Agent": "my-sub-nodes/1.0"})
     with urllib.request.urlopen(req, timeout=15) as response:
         data = response.read(8 * 1024 * 1024)
     text = data.decode("utf-8", errors="ignore").strip()
-    # Subscription feeds are commonly Base64 encoded. Decode only if it looks like Base64.
+    
+    # Subscription feeds are commonly Base64 encoded. Decode if it matches Base64 characters.
     compact = re.sub(r"\s+", "", text)
     if compact and re.fullmatch(r"[A-Za-z0-9+/=_-]+", compact):
         try:
-            decoded = base64.urlsafe_b64decode(compact + "=" * (-len(compact) % 4)).decode("utf-8", errors="ignore")
+            decoded_bytes = safe_base64_decode(compact)
+            decoded = decoded_bytes.decode("utf-8", errors="ignore")
             if "://" in decoded:
                 text = decoded
         except Exception:
@@ -43,10 +62,8 @@ def get_host_port(uri: str):
     """Best-effort endpoint extraction for common URI schemes."""
     try:
         if uri.startswith("vmess://"):
-            # vmess links encode a JSON object in Base64; avoid assuming a port if malformed.
             raw = uri[len("vmess://"):]
-            obj = base64.urlsafe_b64decode(raw + "=" * (-len(raw) % 4)).decode("utf-8", "ignore")
-            import json
+            obj = safe_base64_decode(raw).decode("utf-8", "ignore")
             data = json.loads(obj)
             return data.get("add"), int(data.get("port", 0))
         parsed = urlsplit(uri)
@@ -102,8 +119,7 @@ def main():
     if not unique:
         raise SystemExit("No supported proxy URI links were found. Check your source URLs and formats.")
 
-    # Optional endpoint TCP reachability filter. URI schemes without a directly parseable endpoint
-    # are retained rather than silently discarded.
+    # Optional endpoint TCP reachability filter.
     if os.getenv("ENABLE_TCP_CHECK", "true").lower() in ("1", "true", "yes"):
         passed = set()
         with ThreadPoolExecutor(max_workers=MAX_WORKERS) as pool:
@@ -120,8 +136,7 @@ def main():
     else:
         filtered = unique
 
-    # Keep URI lines for common mobile proxy clients. Base64 is the conventional remote
-    # subscription representation for URI-list feeds.
+    # Keep URI lines for common mobile proxy clients.
     out = Path("dist")
     out.mkdir(parents=True, exist_ok=True)
     payload = ("\n".join(filtered) + "\n").encode("utf-8")
