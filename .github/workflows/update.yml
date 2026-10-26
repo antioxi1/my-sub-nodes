@@ -1,3 +1,4 @@
+
 name: Update proxy subscription
 
 on:
@@ -7,6 +8,10 @@ on:
 
 permissions:
   contents: read
+
+concurrency:
+  group: update-proxy-subscription
+  cancel-in-progress: false
 
 jobs:
   update:
@@ -22,6 +27,17 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Check subscription secret
+        env:
+          SUBSCRIPTION_URLS: ${{ secrets.SUBSCRIPTION_URLS }}
+        run: |
+          if [ -z "$SUBSCRIPTION_URLS" ]; then
+            echo "::error::Missing SUBSCRIPTION_URLS."
+            echo "Add it in Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+          echo "Subscription source secret is configured."
+
       - name: Build subscription
         env:
           SUBSCRIPTION_URLS: ${{ secrets.SUBSCRIPTION_URLS }}
@@ -30,3 +46,11 @@ jobs:
           MAX_WORKERS: "40"
           ENABLE_TCP_CHECK: "true"
         run: python scripts/build_subscription.py
+
+      - name: Upload subscription files
+        uses: actions/upload-artifact@v4
+        with:
+          name: proxy-subscription
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7
