@@ -129,11 +129,11 @@ def main():
 
         except Exception as exc:
             errors.append(
-                f"{type(exc).__name__}: {exc}"
+               f"{type(exc).__name__}: {exc}"
             )
             print(
-                f"WARNING: source fetch failed "
-                f"({type(exc).__name__})"
+                f"WARNING: source fetch failed: "
+                f"{type(exc).__name__}: {exc}"
             )
 
 
